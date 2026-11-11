@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#100d16">
+  <meta name="description" content="Dungeon RPG — uma aventura começa nas profundezas.">
+  <title>Dungeon RPG</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main class="game-shell" id="gameShell">
+    <canvas id="dungeonCanvas" aria-label="Uma masmorra medieval em pixel art"></canvas>
+    <div class="vignette" aria-hidden="true"></div>
+    <header class="brand" aria-label="Dungeon RPG">
+      <span class="brand-kicker">UMA AVENTURA NAS PROFUNDEZAS</span>
+      <h1>DUNGEON <span>RPG</span></h1>
+      <div class="brand-rule"><i></i><b>✦</b><i></i></div>
+    </header>
+
+    <section class="screen menu-screen is-active" id="menuScreen" aria-label="Menu principal">
+      <p class="screen-eyebrow">O destino aguarda por você</p>
+      <nav class="menu-buttons" aria-label="Menu do jogo">
+        <button class="menu-button primary" data-action="new-game"><span class="button-icon">⚔</span><span>Novo Jogo</span><span class="button-arrow">›</span></button>
+        <button class="menu-button" data-action="continue"><span class="button-icon">▣</span><span>Continuar</span><span class="button-arrow">›</span></button>
+        <button class="menu-button" data-action="settings"><span class="button-icon">⚙</span><span>Configurações</span><span class="button-arrow">›</span></button>
+        <button class="menu-button" data-action="credits"><span class="button-icon">✧</span><span>Créditos</span><span class="button-arrow">›</span></button>
+      </nav>
+      <p class="menu-hint">Use o mouse para navegar</p>
+    </section>
+
+    <section class="screen panel-screen" id="classScreen" aria-labelledby="classTitle" hidden>
+      <div class="panel-card class-panel">
+        <p class="screen-eyebrow">Sua jornada começa aqui</p>
+        <h2 id="classTitle">Escolha sua classe</h2>
+        <p class="panel-copy">Cada herói trilha um caminho diferente.</p>
+        <div class="class-layout">
+          <div class="class-grid" aria-label="Classes disponíveis">
+            <button class="class-card selected" data-class="knight" type="button" aria-pressed="true"><canvas class="class-sprite" id="knightSprite" width="96" height="112" aria-label="Sprite pixel art de um cavaleiro"></canvas><strong>Cavaleiro</strong><small>Guardião da linha de frente</small></button>
+            <button class="class-card" data-class="mage" type="button" aria-pressed="false"><canvas class="class-sprite" id="mageSprite" width="96" height="112" aria-label="Sprite pixel art de um mago"></canvas><strong>Mago</strong><small>Mestre das artes arcanas</small></button>
+            <button class="class-card" data-class="archer" type="button" aria-pressed="false"><canvas class="class-sprite" id="archerSprite" width="96" height="112" aria-label="Sprite pixel art de um arqueiro"></canvas><strong>Arqueiro</strong><small>Atirador veloz e preciso</small></button>
+          </div>
+          <aside class="class-details" aria-live="polite">
+            <p class="detail-label">CLASSE SELECIONADA</p><h3 id="selectedClassName">Cavaleiro</h3><p id="selectedClassDescription" class="class-description"></p>
+            <div class="stat-grid"><div><small>VIDA</small><strong id="statHealth">150</strong></div><div><small>MANA</small><strong id="statMana">20</strong></div><div><small>ATAQUE</small><strong id="statAttack">15</strong></div><div><small>DEFESA</small><strong id="statDefense">10</strong></div></div>
+            <p class="equipment-line"><span>ARMA</span><strong id="statWeapon">Espada</strong></p>
+            <div class="ability-box"><small>HABILIDADE ESPECIAL</small><strong id="statAbility">Golpe Giratório</strong><p id="abilityDescription"></p></div>
+          </aside>
+        </div>
+        <div class="panel-actions"><button class="text-button" data-action="back">← Voltar</button><button class="ornate-button" data-action="confirm-class">Confirmar <span>›</span></button></div>
+      </div>
+    </section>
+
+    <section class="screen panel-screen" id="settingsScreen" aria-labelledby="settingsTitle" hidden>
+      <div class="panel-card compact-card">
+        <p class="screen-eyebrow">Ajuste sua experiência</p><h2 id="settingsTitle">Configurações</h2>
+        <label class="setting-row" for="volumeControl"><span><strong>Volume</strong><small>Áudio e efeitos</small></span><span class="volume-control"><input id="volumeControl" type="range" min="0" max="100" value="45"><output id="volumeValue">45%</output></span></label>
+        <div class="setting-row"><span><strong>Tela cheia</strong><small>Expandir para a tela inteira</small></span><button class="toggle-button" id="fullscreenToggle" type="button" aria-pressed="false"><span></span><b>Desativada</b></button></div>
+        <div class="setting-row"><span><strong>Tecla de ataque</strong><small>Clique esquerdo também ataca</small></span><button class="keybind-button" id="attackKeyButton" type="button">F</button></div>
+        <div class="panel-actions"><button class="text-button" data-action="back">← Voltar</button><button class="ornate-button" data-action="back">Concluído <span>›</span></button></div>
+      </div>
+    </section>
+
+    <section class="screen panel-screen" id="creditsScreen" aria-labelledby="creditsTitle" hidden>
+      <div class="panel-card compact-card credits-card"><p class="screen-eyebrow">Feito para aventureiros</p><h2 id="creditsTitle">Créditos</h2><div class="credits-content"><span class="credits-emblem">✦</span><p><strong>DUNGEON RPG</strong><br>Uma aventura em construção</p><p class="credits-small">Criado com HTML5, CSS3, JavaScript e Canvas.<br>Obrigado por jogar.</p></div><div class="panel-actions"><button class="text-button" data-action="back">← Voltar</button><span></span></div></div>
+    </section>
+
+    <section class="screen panel-screen" id="preparationScreen" aria-label="Preparação da aventura" hidden>
+      <div class="adventure-card"><p class="screen-eyebrow">Preparação da aventura</p><h2 id="welcomeTitle">A masmorra desperta</h2><p id="welcomeCopy">Sua aventura está prestes a começar.</p><div class="adventure-tip">✦ &nbsp; Classe e atributos salvos. Prepare-se para explorar.</div><div class="panel-actions"><button class="text-button" data-action="back">← Menu principal</button><button class="ornate-button" data-action="start-exploring">Explorar masmorra <span>›</span></button></div></div>
+    </section>
+
+    <section class="screen dungeon-overlay" id="dungeonScreen" aria-label="Área jogável da masmorra" hidden>
+      <div class="dungeon-hud"><div class="hud-left"><div class="area-badge"><span class="status-light"></span><span id="areaName">Catacumbas Antigas</span></div><div class="player-bars"><div class="resource-row"><span>HP</span><div class="resource-track"><i id="healthBar"></i></div><b id="healthText">100 / 100</b></div><div class="resource-row mana-row"><span>MP</span><div class="resource-track"><i id="manaBar"></i></div><b id="manaText">20 / 20</b></div><div class="xp-row"><span id="levelText">NÍVEL 1</span><div class="resource-track xp-track"><i id="xpBar"></i></div><b id="xpText">0 XP</b></div><div class="loot-row" id="inventoryText">MOCHILA · 0 ITENS</div></div><div class="ability-slots"><span><b>1</b><i id="abilityName1">Habilidade</i><small id="abilityCooldown1"></small></span><span><b>2</b><i id="abilityName2">Habilidade</i><small id="abilityCooldown2"></small></span><span><b>3</b><i id="abilityName3">Habilidade</i><small id="abilityCooldown3"></small></span><span><b>4</b><i id="abilityName4">Habilidade</i><small id="abilityCooldown4"></small></span></div></div><canvas id="minimapCanvas" width="144" height="96" aria-label="Minimapa das áreas exploradas"></canvas><div class="hud-actions"><button class="dungeon-exit" type="button" data-action="inventory">Inventário</button><button class="dungeon-exit" type="button" data-action="progression">Personagem</button><button class="dungeon-exit" type="button" data-action="leave-dungeon">Pausar <span>Ⅱ</span></button></div></div>
+      <section class="rpg-modal" id="inventoryModal" aria-labelledby="inventoryTitle" hidden>
+        <div class="rpg-panel"><header class="rpg-panel-head"><div><p class="screen-eyebrow">Equipamento e espólios</p><h2 id="inventoryTitle">Inventário</h2></div><button class="modal-close" data-action="close-rpg-modal" aria-label="Fechar">×</button></header>
+          <div class="equipment-slots" id="equipmentList"></div><h3 class="section-title">Mochila</h3><div class="inventory-list" id="inventoryList"></div><div class="selected-item" id="selectedItemDetail">Escolha um item para ver as opções.</div><div class="item-actions"><button class="ornate-button" id="useItemButton" type="button" data-item-action="use" disabled>Usar</button><button class="ornate-button" id="equipItemButton" type="button" data-item-action="equip" disabled>Equipar</button><button class="text-button" data-action="close-rpg-modal">Voltar ao jogo</button></div>
+        </div>
+      </section>
+      <section class="rpg-modal" id="progressionModal" aria-labelledby="progressionTitle" hidden>
+        <div class="rpg-panel"><header class="rpg-panel-head"><div><p class="screen-eyebrow">Atributos e talentos</p><h2 id="progressionTitle">Personagem</h2></div><button class="modal-close" data-action="close-rpg-modal" aria-label="Fechar">×</button></header>
+          <div class="progression-summary"><strong id="progressionLevel">Nível 1</strong><span id="attributePoints">Pontos de atributo: 0</span><span id="skillPoints">Pontos de habilidade: 0</span></div><div class="attribute-list" id="attributeList"></div><h3 class="section-title">Árvore de habilidades</h3><div class="skill-tree" id="skillTree"></div><div class="item-actions"><button class="text-button" data-action="close-rpg-modal">Voltar ao jogo</button></div>
+        </div>
+      </section>
+      <div class="movement-hint">WASD / SETAS <span>·</span> MOVER <span>·</span> CLIQUE / <b id="attackKeyHint">F</b> ATACAR <span>·</span> 1–4 HABILIDADES <span>·</span> ESPAÇO ESQUIVAR</div>
+    </section>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <footer class="game-footer"><span>VERSÃO 0.1 · PRÓLOGO</span><span>◆</span><span>UMA NOVA LENDA COMEÇA</span></footer>
+  </main>
+  <script src="js/game.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
