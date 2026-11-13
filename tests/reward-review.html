@@ -1,0 +1,81 @@
+<!doctype html><meta charset="utf-8"><title>Revisão completa: recompensas e baús reais</title>
+<body data-audit="running"><iframe src="../index.html" style="width:1120px;height:760px"></iframe>
+<script>
+const frame=document.querySelector('iframe'),results=[],errors=[],key='dungeon-rpg-save-v1',marker='reward-full-review-v1';
+const check=(name,condition)=>{results.push({name,passed:!!condition});if(!condition)throw Error(name)};
+function report(status){document.body.dataset.audit=status;let node=document.querySelector('#results');if(!node){node=document.createElement('pre');node.id='results';document.body.append(node)}node.textContent=JSON.stringify({results,errors})}
+frame.onload=()=>{
+ const w=frame.contentWindow,d=w.document,g=w.DungeonGame,storage=w.localStorage;
+ w.addEventListener('error',e=>errors.push(e.message));w.addEventListener('unhandledrejection',e=>errors.push(String(e.reason)));
+ const click=selector=>{const node=d.querySelector(selector);if(!node)throw Error('Missing '+selector);node.click()};
+ const pressE=()=>w.dispatchEvent(new w.KeyboardEvent('keydown',{key:'e',bubbles:true}));
+ const read=()=>JSON.parse(storage.getItem(key));
+ const state=()=>g.getRunState();
+ const resume=()=>{click('[data-action="continue"]');click('[data-action="start-exploring"]');g.pause()};
+ // Posiciona o personagem usando o carregamento existente. Interação, baú,
+ // validação, loot e salvamento são os mesmos usados pelo jogador.
+ const moveTo=chest=>{const run=state();run.position={x:chest[0]*16+8,y:chest[1]*16+8};g.startDungeon(w.DungeonClasses.knight,run);g.pause()};
+ const answer=index=>{click('#networkAnswers button:nth-child('+(index+1)+')');click('#networkConfirm')};
+ const repeated=()=>{for(let i=0;i<25;i++)click('#networkConfirm')};
+ try{
+  check('Inicialização JavaScript',!!g&&!!g.rewardCorrectAnswer);g.pause();
+  const phase=storage.getItem(marker);
+  if(!phase){
+   click('[data-action="new-game"]');click('[data-action="confirm-class"]');click('[data-action="start-exploring"]');g.pause();
+   const chests=[];g.getDungeonSnapshot().map.forEach((row,y)=>row.forEach((tile,x)=>{if(tile===5)chests.push([x,y])}));
+   check('Masmorra contém baú real',chests.length>=1);
+   const original=read();original.extra={preserve:true};original.run.extra='preserved';storage.setItem(key,JSON.stringify(original));
+   moveTo(chests[0]);pressE();
+   check('1. Interagir com baú abre pergunta e pausa exploração',!d.querySelector('#networkModal').hidden&&!g.playing);
+   click('#networkConfirm');check('Confirmação sem seleção não recompensa',state().totalXp===0&&g.inventoryGold===0);
+   answer(0);
+   check('2. Resposta correta reconhecida',d.querySelectorAll('.network-answer.correct').length===1&&d.querySelector('.reward-success'));
+   check('3. Recebeu exatamente 50 XP',state().totalXp===50&&state().xp===10&&state().level===2);
+   check('4. Recebeu exatamente 20 moedas',g.inventoryGold===20);
+   check('HUD e atributos evoluem',d.querySelector('#xpText').textContent==='10 / 80 XP'&&d.querySelector('#xpBar').style.width==='12.5%'&&d.querySelector('#goldText').textContent==='20 OURO'&&state().maxHealth===158&&state().attack===17);
+   check('Salvamento imediato antes de receber item',read().run.totalXp===50&&read().run.inventoryGold===20&&state().inventory.length===0);
+   repeated();
+   check('7. Confirmação repetida não duplica XP, ouro, item ou progresso',state().totalXp===50&&g.inventoryGold===20&&state().inventory.length===1&&state().openedChests.length===1&&state().networkKnowledge.completed===1);
+   pressE();check('Baú já aberto não repete desafio',d.querySelector('#networkModal').hidden);
+   const stairs=g.getDungeonSnapshot().stairs;moveTo([stairs.x,stairs.y]);pressE();
+   check('Exploração permite avançar para outro andar',g.floor===2);
+   const second=g.getDungeonSnapshot().map;let nextChest;
+   second.forEach((row,y)=>row.forEach((tile,x)=>{if(tile===5)nextChest=[x,y]}));
+   check('Próximo andar contém outro baú real',!!nextChest);chests[1]=nextChest;
+   moveTo(chests[1]);pressE();answer(0);
+   check('5. Resposta incorreta reconhecida',!!d.querySelector('.network-answer.wrong')&&!!d.querySelector('.reward-failure'));
+   check('6. Erro não concede XP ou moedas',state().totalXp===50&&g.inventoryGold===20);
+   repeated();check('Confirmação repetida após erro não abre baú',state().openedChests.length===0&&state().inventory.length===1&&state().totalXp===50);
+   answer(2);
+   check('8. Outro baú aceita outra pergunta correta',!!d.querySelector('.reward-success')&&state().totalXp===100);
+   check('9. Recompensas acumuladas: 100 XP e 40 moedas',g.inventoryGold===40&&state().xp===60&&d.querySelector('#xpText').textContent==='60 / 80 XP'&&d.querySelector('#xpBar').style.width==='75%'&&d.querySelector('#goldText').textContent==='40 OURO');
+   // Recarrega enquanto o segundo baú ainda aguarda coleta do item.
+   storage.setItem(marker,JSON.stringify({phase:'reload',chests}));w.location.reload();return;
+  }
+  const audit=JSON.parse(phase);
+  if(audit.phase==='reload'){
+   resume();check('10. Atualizar página preserva 100 XP e 40 moedas',state().totalXp===100&&g.inventoryGold===40);
+   moveTo(audit.chests[1]);pressE();answer(2);
+   check('Reabrir desafio após reload não duplica valores',state().totalXp===100&&g.inventoryGold===40);
+   check('Notificação não promete recompensa já recebida',!d.querySelector('.reward-values')&&!d.querySelector('.reward-flying-coin')&&d.querySelector('.reward-retry').textContent.includes('já recebida'));
+   repeated();check('Coleta pendente entrega um único item',state().inventory.length===2&&state().openedChests.length===1&&state().networkKnowledge.completed===2);
+   check('Nenhum erro JavaScript durante interações',errors.length===0);
+   storage.setItem(marker,JSON.stringify({phase:'restart',chests:audit.chests}));report('awaiting-browser-restart');return;
+  }
+  if(audit.phase==='restart'){
+   resume();
+   check('11. Partida carregada em nova execução do navegador',state().floor===2&&state().openedChests.length===1&&state().inventory.length===2);
+   check('12. XP e moedas continuam salvos',state().totalXp===100&&state().level===2&&state().xp===60&&g.inventoryGold===40);
+   check('HUD restaurado após fechar navegador',d.querySelector('#xpText').textContent==='60 / 80 XP'&&d.querySelector('#goldText').textContent==='40 OURO');
+   check('Dados anteriores preservados',read().extra.preserve&&read().run.extra==='preserved');
+   const before=JSON.stringify(state());pressE();repeated();check('Carregamento e confirmações não reaplicam recompensas',JSON.stringify(state())===before);
+   // Verifica que um baú já recompensado mantém sua pergunta, mesmo se outro foi resolvido.
+   g.onChestChallenge(()=>false,'1:'+audit.chests[0].join(':'));
+   check('Pergunta original estável em desafio já recompensado',d.querySelector('#networkQuestion').textContent.includes('roteador'));
+   answer(0);click('#networkConfirm');check('Callback de baú rejeitado não avança progresso',state().networkKnowledge.completed===2);
+   check('Nenhum erro JavaScript',errors.length===0);
+   report('passed');return;
+  }
+ }catch(error){results.push({error:error.message});report('failed')}
+};
+</script>

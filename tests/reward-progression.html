@@ -1,0 +1,56 @@
+<!doctype html><meta charset="utf-8"><title>Recompensas e progressão</title>
+<body data-audit="running"><iframe src="../index.html" style="width:1120px;height:760px"></iframe>
+<script>
+document.querySelector('iframe').onload=function(){
+ const w=this.contentWindow,d=w.document,g=w.DungeonGame,results=[];
+ const check=(name,condition)=>{results.push({name,passed:!!condition});if(!condition)throw Error(name)};
+ const click=s=>d.querySelector(s).click();
+ const answer=(id,index)=>{g.onChestChallenge(()=>{},id);click('#networkAnswers button:nth-child('+(index+1)+')');click('#networkConfirm')};
+ try{
+  click('[data-action="new-game"]');click('[data-action="confirm-class"]');click('[data-action="start-exploring"]');
+  for(const character of Object.values(w.DungeonClasses)){
+   g.startDungeon(character);g.stopDungeon();
+   const initial=g.getRunState();
+   answer('1:10:10',1);
+   check(character.id+': erro não recompensa',g.getRunState().xp===0&&g.inventoryGold===0);
+   click('#networkConfirm');click('#networkAnswers button:first-child');click('#networkConfirm');
+   let state=g.getRunState();
+   check(character.id+': acerto concede 50 XP e 20 ouro',state.level===2&&state.xp===10&&state.inventoryGold===20);
+   check(character.id+': atributos e pontos evoluem',state.maxHealth===initial.maxHealth+8&&state.maxMana===initial.maxMana+5&&state.attack===initial.attack+2&&state.attributePoints===3&&state.skillPoints===1);
+   check(character.id+': HUD imediato',d.querySelector('#xpText').textContent==='10 / 80 XP'&&d.querySelector('#xpBar').style.width==='12.5%'&&d.querySelector('#levelText').textContent==='NÍVEL 2'&&d.querySelector('#goldText').textContent==='20 OURO');
+   check(character.id+': notificação de nível',d.querySelector('#toast').textContent.includes('Nível 2!'));
+   click('#networkLeave');g.stopDungeon();
+   answer('1:10:10',0);
+   check(character.id+': reabrir baú não duplica',g.inventoryGold===20&&g.getRunState().xp===10);
+   click('#networkLeave');g.stopDungeon();
+   answer('1:11:10',0);
+   check(character.id+': acumula recompensas',g.inventoryGold===40&&g.getRunState().xp===60);
+   click('#networkConfirm');g.stopDungeon();
+   const saved=g.getRunState();g.startDungeon(character,saved);g.stopDungeon();
+   check(character.id+': restaura saldo e evolução',g.inventoryGold===40&&g.getRunState().xp===60&&g.getRunState().maxHealth===initial.maxHealth+8);
+   check(character.id+': proteção persiste após carregar',g.rewardCorrectAnswer('1:10:10')===false&&g.inventoryGold===40);
+   // Testa também múltiplos níveis e XP excedente com o mesmo motor.
+   const near=g.getRunState();near.xp=190;near.level=2;g.startDungeon(character,near);g.stopDungeon();
+   g.rewardCorrectAnswer('2:12:10');state=g.getRunState();
+   check(character.id+': múltiplos níveis preservam excedente',state.level===4&&state.xp===40&&state.attributePoints===9&&state.skillPoints===3);
+   const health=state.maxHealth;g.allocateAttribute('vitality');
+   check(character.id+': distribuir atributo mantém evolução',g.getRunState().maxHealth===health+10&&g.getRunState().attributePoints===8);
+   g.startDungeon(character);g.stopDungeon();
+   check(character.id+': nova aventura zera saldo',g.inventoryGold===0&&g.getRunState().xp===0&&d.querySelector('#goldText').textContent==='0 OURO');
+  }
+  g.startDungeon(w.DungeonClasses.knight);g.stopDungeon();
+  const correctAnswers=[0,2,1,3,0,2,1,3,0,2];
+  correctAnswers.forEach((correct,index)=>{
+   answer('answers:'+index,(correct+1)%4);
+   check('Pergunta '+(index+1)+': alternativa errada não recompensa',g.getRunState().totalXp===index*50&&g.inventoryGold===index*20);
+   click('#networkConfirm');click('#networkAnswers button:nth-child('+(correct+1)+')');click('#networkConfirm');
+   check('Pergunta '+(index+1)+': alternativa correta recompensa uma vez',g.getRunState().totalXp===(index+1)*50&&g.inventoryGold===(index+1)*20);
+   for(let repeat=0;repeat<10;repeat++)click('#networkConfirm');
+   g.stopDungeon();
+   check('Pergunta '+(index+1)+': confirmação repetida segura',g.getRunState().totalXp===(index+1)*50&&g.getRunState().networkKnowledge.completed===index+1);
+  });
+  document.body.dataset.audit='passed';
+ }catch(error){document.body.dataset.audit='failed';results.push({error:error.message})}
+ const report=document.createElement('pre');report.id='results';report.textContent=JSON.stringify(results);document.body.append(report);
+};
+</script>

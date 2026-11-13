@@ -1,0 +1,65 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Verificação dos efeitos de recompensa</title>
+<style>body{margin:0}iframe{width:100vw;height:100vh;border:0}</style>
+<body data-audit="running"><iframe src="../index.html"></iframe>
+<script>
+const frame = document.querySelector('iframe');
+frame.onload = async () => {
+  const w = frame.contentWindow, d = w.document, results = [];
+  const check = (name, condition) => { results.push({name, passed:!!condition}); if (!condition) throw Error(name); };
+  const wait = ms => new Promise(resolve => w.setTimeout(resolve, ms));
+  const click = selector => d.querySelector(selector).click();
+  const style = selector => w.getComputedStyle(d.querySelector(selector));
+  try {
+    click('[data-action="new-game"]');
+    click('[data-action="confirm-class"]');
+    click('[data-action="start-exploring"]');
+    const game = w.DungeonGame;
+    let opened = 0;
+    game.onChestChallenge(() => opened++, "effects-test");
+    click('#networkAnswers button:nth-child(2)');
+    click('#networkConfirm');
+    const reduced = w.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    check('Erro: runa, mensagem e nenhuma moeda', d.querySelector('.reward-failure .pixel-rune') && !d.querySelector('.reward-flying-coin'));
+    check('Erro: animação própria', reduced || style('.reward-notice').animationName.includes('reward-failure-shake'));
+    check('Erro: partículas', d.querySelectorAll('.particle-ember').length === (reduced ? 0 : 10));
+    await wait(3000);
+    check('Erro: remoção automática', !d.querySelector('.answer-effect'));
+    click('#networkConfirm');
+    click('#networkAnswers button:first-child');
+    click('#networkConfirm');
+    check('Acerto: título e valores', d.querySelector('.reward-heading').textContent === 'RESPOSTA CORRETA!' && d.querySelector('.reward-xp').textContent === '+50 XP' && d.querySelector('.reward-gold').textContent === '+20 OURO');
+    check('XP e ouro têm cores diferentes', style('.reward-xp').color !== style('.reward-gold').color);
+    check('Moedas e partículas limitadas', d.querySelectorAll('.reward-flying-coin').length === (reduced ? 0 : 6) && d.querySelectorAll('.reward-particle').length === (reduced ? 0 : 22));
+    check('XP flutuante', reduced || !!d.querySelector('.reward-floating-xp'));
+    check('Camada não captura controles', [...d.querySelectorAll('.reward-effects, .reward-effects *')].every(node => w.getComputedStyle(node).pointerEvents === 'none'));
+    check('Correct answer updates progression before chest collection', opened === 0 && game.getRunState().inventoryGold === 20 && game.getRunState().level === 2 && game.getRunState().xp === 10);
+    if (!reduced) {
+      await wait(500);
+      for (const selector of ['.reward-notice','.reward-xp','.reward-flying-coin','.reward-particle','.reward-floating-xp']) {
+        const node = d.querySelector(selector), animations = node.getAnimations();
+        check('Animação registrada: ' + selector, animations.length > 0);
+        for (const animation of animations) { animation.pause(); animation.currentTime = 600; }
+        check('Quadro intermediário visível: ' + selector, Number(w.getComputedStyle(node).opacity) > 0);
+      }
+      const animations = d.querySelector('.reward-notice').getAnimations();
+      const departure = animations.find(animation => animation.animationName === 'reward-depart');
+      departure.pause(); departure.currentTime = 3450;
+      check('Saída dissolve a notificação', Number(style('.reward-notice').opacity) === 0);
+    } else check('Movimento reduzido respeitado', style('.reward-notice').animationName === 'none');
+    const box = d.querySelector('.reward-notice').getBoundingClientRect(), shell = d.querySelector('#gameShell').getBoundingClientRect();
+    check('Notificação dentro da tela', box.left >= shell.left && box.right <= shell.right && box.bottom <= shell.bottom);
+    click('#networkConfirm');
+    check('Fluxo original recebe tesouro uma vez e retoma exploração', opened === 1 && d.querySelector('#networkModal').hidden && game.playing);
+    await wait(3900);
+    check('Acerto: remoção automática', !d.querySelector('.answer-effect'));
+    game.onChestChallenge(() => opened++, "effects-test");
+    click('#networkAnswers button:first-child'); click('#networkConfirm');
+    click('#networkLeave'); click('[data-action="leave-dungeon"]');
+    check('Saída da aventura limpa efeitos', !d.querySelector('.answer-effect'));
+    document.body.dataset.audit = 'passed';
+  } catch (error) { document.body.dataset.audit = 'failed'; results.push({error:error.message}); }
+  const report = document.createElement('pre'); report.id = 'results'; report.textContent = JSON.stringify(results); document.body.append(report);
+};
+</script>

@@ -1,0 +1,59 @@
+<!doctype html><meta charset="utf-8"><title>Salvamento permanente de recompensas</title>
+<body data-audit="running"><iframe src="../index.html" style="width:1120px;height:760px"></iframe>
+<script>
+const frame=document.querySelector('iframe'),results=[],key='dungeon-rpg-save-v1',marker='reward-persistence-audit';
+const check=(name,condition)=>{results.push({name,passed:!!condition});if(!condition)throw Error(name)};
+function report(status){document.body.dataset.audit=status;let node=document.querySelector('#results');if(!node){node=document.createElement('pre');node.id='results';document.body.append(node)}node.textContent=JSON.stringify(results)}
+frame.onload=()=>{
+ const w=frame.contentWindow,d=w.document,g=w.DungeonGame,storage=w.localStorage;
+ const click=selector=>d.querySelector(selector).click();
+ const read=()=>JSON.parse(storage.getItem(key));
+ const resume=()=>{click('[data-action="continue"]');click('[data-action="start-exploring"]');g.stopDungeon()};
+ try{
+  g.pause();
+  const phase=storage.getItem(marker);
+  if(!phase){
+   click('[data-action="new-game"]');click('[data-action="confirm-class"]');click('[data-action="start-exploring"]');g.stopDungeon();
+   const original=read();original.customData={keep:true};original.run.customRunData='preserved';storage.setItem(key,JSON.stringify(original));
+   g.onChestChallenge(()=>{},'1:20:20');click('#networkAnswers button:first-child');click('#networkConfirm');
+   const saved=read();
+   check('Recompensa gravada imediatamente',saved.run.totalXp===50&&saved.run.xp===10&&saved.run.level===2&&saved.run.inventoryGold===20);
+   check('Pergunta recompensada gravada no desafio',saved.run.networkKnowledge.rewardedChests['1:20:20'].questionId==='network-0');
+   check('Campos anteriores preservados',saved.customData.keep&&saved.run.customRunData==='preserved'&&saved.run.seed===original.run.seed&&saved.run.inventory.length===original.run.inventory.length);
+   storage.setItem(marker,'reload');frame.contentWindow.location.reload();return;
+  }
+  if(phase==='reload'){
+   const before=storage.getItem(key);
+   w.dispatchEvent(new w.Event('pagehide'));
+   check('Menu não sobrescreve partida salva',storage.getItem(key)===before);
+   resume();
+   let state=g.getRunState();
+   check('Atualizar página restaura XP total, nível e moedas',state.totalXp===50&&state.xp===10&&state.level===2&&state.inventoryGold===20);
+   check('HUD restaurado',d.querySelector('#xpText').textContent==='10 / 80 XP'&&d.querySelector('#goldText').textContent==='20 OURO');
+   g.onChestChallenge(()=>{},'1:20:20');click('#networkAnswers button:first-child');click('#networkConfirm');
+   check('Repetir pergunta após recarregar não duplica',g.getRunState().totalXp===50&&g.inventoryGold===20);
+   click('#networkLeave');g.stopDungeon();
+   g.allocateAttribute('vitality');g.unlockSkill(1);
+   w.dispatchEvent(new w.Event('pagehide'));
+   const saved=read();
+   check('Atributos e habilidades salvos',saved.run.attributes.vitality===1&&saved.run.attributePoints===2&&saved.run.unlockedSkills[1]&&saved.run.skillPoints===0);
+   storage.setItem(marker,'browser-restart');
+   report('awaiting-browser-restart');return;
+  }
+  if(phase==='browser-restart'){
+   const before=read();resume();const state=g.getRunState();
+   check('Fechar e reabrir navegador preserva recompensas',state.totalXp===50&&state.level===2&&state.inventoryGold===20);
+   check('Progresso completo restaurado',state.attributes.vitality===1&&state.attributePoints===2&&state.unlockedSkills[1]&&state.maxHealth===before.run.maxHealth&&state.seed===before.run.seed&&JSON.stringify(state.inventory)===JSON.stringify(before.run.inventory));
+   check('Carregamento não reaplica recompensa',g.rewardCorrectAnswer('1:20:20','network-0')===false&&g.getRunState().totalXp===50&&g.inventoryGold===20);
+   check('Dados adicionais preservados após reabrir',read().customData.keep&&read().run.customRunData==='preserved');
+   // Compatibilidade com saves anteriores que não possuem XP total explícito.
+   const legacy=read();delete legacy.run.totalXp;storage.setItem(key,JSON.stringify(legacy));
+   click('[data-action="leave-dungeon"]');click('#preparationScreen [data-action="back"]');
+   const old=read();delete old.run.totalXp;storage.setItem(key,JSON.stringify(old));
+   resume();check('Save antigo mantém XP acumulado',g.getRunState().totalXp===50);
+   storage.setItem(marker,'completed');report('passed');return;
+  }
+  report(phase==='completed'?'passed':'failed');
+ }catch(error){results.push({error:error.message});report('failed')}
+};
+</script>

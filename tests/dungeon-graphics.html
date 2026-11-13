@@ -1,0 +1,21 @@
+<!doctype html><meta charset="utf-8"><title>Prévia da cripta</title>
+<style>html,body{margin:0;background:#080f12}iframe{width:100vw;height:100vh;border:0}</style>
+<body data-audit="running"><iframe src="../index.html"></iframe><script>
+document.querySelector('iframe').onload=function(){
+ const w=this.contentWindow,d=w.document,g=w.DungeonGame,errors=[];
+ w.addEventListener('error',event=>errors.push(event.message));
+ try{
+  d.querySelector('[data-action="new-game"]').click();d.querySelector('[data-action="confirm-class"]').click();d.querySelector('[data-action="start-exploring"]').click();
+  const run=g.getRunState();run.seed=74219;g.startDungeon(w.DungeonClasses.knight,run);
+  const room=g.treasureRoom,position={x:(room.x+Math.floor(room.w/2))*16+8,y:(room.y+Math.floor(room.h/2)+1)*16+8};
+  g.startDungeon(w.DungeonClasses.knight,{...g.getRunState(),position});
+  const before=JSON.stringify(g.getDungeonSnapshot());
+  const tile=d.createElement('canvas');tile.width=tile.height=64;const ctx=tile.getContext('2d');
+  for(const kind of ['floor','wall','edge','obstacle','chest','open','stairs','altar'])w.DungeonArt.draw(ctx,kind,12,8,16,16);
+  w.DungeonArt.torch(ctx,16,16,1,42);
+  if(before!==JSON.stringify(g.getDungeonSnapshot()))throw Error('Arte alterou o mapa');
+  if(!ctx.getImageData(16,16,16,16).data.some(value=>value))throw Error('Arte vazia');
+  let frames=0;g.registerSystem({update(){if(++frames===3){g.stopDungeon();if(errors.length)throw Error(errors.join(';'));document.body.dataset.audit='passed';g.playing=true;g.pause()}}});
+ }catch(error){document.body.dataset.audit='failed';document.body.dataset.error=error.message}
+};
+</script>

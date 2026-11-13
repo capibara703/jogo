@@ -21,6 +21,104 @@ let answered = false;
 let solved = false;
 let questionIndex = 0;
 let previousFocus = null;
+let rewardChestId = null;
+
+// Camada apenas visual: não altera XP, ouro, inventário ou salvamento.
+const rewardEffects = document.createElement('div');
+rewardEffects.className = 'reward-effects';
+rewardEffects.setAttribute('role', 'status');
+rewardEffects.setAttribute('aria-live', 'polite');
+rewardEffects.setAttribute('aria-atomic', 'true');
+el('gameShell').append(rewardEffects);
+let effectsTimer = 0;
+
+function clearRewardEffect() {
+  window.clearTimeout(effectsTimer);
+  rewardEffects.replaceChildren();
+}
+
+function showAnswerEffect(correct, granted = correct) {
+  clearRewardEffect();
+  const effect = document.createElement('div');
+  effect.className = `answer-effect ${correct ? 'reward-success' : 'reward-failure'}`;
+  const card = document.createElement('div');
+  card.className = 'reward-notice';
+  const seal = document.createElement('span');
+  seal.className = 'reward-seal';
+  seal.setAttribute('aria-hidden', 'true');
+  const icon = document.createElement('i');
+  icon.className = correct ? 'pixel-coin' : 'pixel-rune';
+  seal.append(icon);
+  const copy = document.createElement('div');
+  copy.className = 'reward-copy';
+  const heading = document.createElement('strong');
+  heading.className = 'reward-heading';
+  heading.textContent = correct ? 'RESPOSTA CORRETA!' : 'RESPOSTA INCORRETA';
+  copy.append(heading);
+  if (correct && granted) {
+    const values = document.createElement('div');
+    values.className = 'reward-values';
+    for (const [className, label] of [['reward-xp', '+50 XP'], ['reward-gold', '+20 OURO']]) {
+      const value = document.createElement('span');
+      value.className = className;
+      value.textContent = label;
+      values.append(value);
+    }
+    copy.append(values);
+  } else {
+    const hint = document.createElement('span');
+    hint.className = 'reward-retry';
+    hint.textContent = correct ? 'Recompensa já recebida neste desafio.' : 'O selo resiste. Você pode tentar de novo.';
+    copy.append(hint);
+  }
+  card.append(seal, copy);
+  const lifetime = document.createElement('span');
+  lifetime.className = 'reward-lifetime';
+  card.append(lifetime);
+  effect.append(card);
+
+  // Quantidade fixa e deslocamentos locais: nenhum efeito cobre a masmorra inteira.
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!reducedMotion) {
+    for (let i = 0; i < (correct ? (granted ? 22 : 0) : 10); i++) {
+      const particle = document.createElement('i');
+      particle.className = `reward-particle ${correct ? (i % 2 ? 'particle-gold' : 'particle-xp') : 'particle-ember'}`;
+      particle.setAttribute('aria-hidden', 'true');
+      const angle = i * 2.399;
+      particle.style.setProperty('--dx', `${Math.round(Math.cos(angle) * (48 + i * 2))}px`);
+      particle.style.setProperty('--dy', `${Math.round(Math.sin(angle) * 40 - 38)}px`);
+      particle.style.setProperty('--delay', `${i * 18}ms`);
+      effect.append(particle);
+    }
+    if (correct && granted) {
+      for (let i = 0; i < 6; i++) {
+        const coin = document.createElement('i');
+        coin.className = 'pixel-coin reward-flying-coin';
+        coin.setAttribute('aria-hidden', 'true');
+        coin.style.setProperty('--dx', `${(i - 2.5) * 31}px`);
+        coin.style.setProperty('--delay', `${i * 85}ms`);
+        effect.append(coin);
+      }
+      const xp = document.createElement('span');
+      xp.className = 'reward-floating-xp';
+      xp.setAttribute('aria-hidden', 'true');
+      xp.textContent = '+50 XP';
+      effect.append(xp);
+    }
+  }
+  rewardEffects.append(effect);
+  // O tempo de exibição independe da pausa e das animações do motor.
+  effectsTimer = window.setTimeout(clearRewardEffect, correct ? 3800 : 2900);
+}
+
+// Limpa a notificação ao sair da aventura.
+document.addEventListener('click', event => {
+  const action = event.target.closest('[data-action]')?.dataset.action;
+  if (['new-game', 'leave-dungeon', 'save-return'].includes(action) && el('networkModal').hidden) clearRewardEffect();
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) clearRewardEffect();
+});
 
 function renderAnswers() {
   selected = null;
@@ -59,12 +157,16 @@ function closeChallenge() {
   if (previousFocus && previousFocus.isConnected) previousFocus.focus();
 }
 
-game.onChestChallenge = openChest => {
+game.onChestChallenge = (openChest, chestId) => {
   if (reward) return;
   const knowledge = game.networkKnowledge || (game.networkKnowledge = {});
   const completed = Number.isInteger(knowledge.completed) && knowledge.completed >= 0 ? knowledge.completed : 0;
   questionIndex = completed % questions.length;
+  const previousQuestion = knowledge.rewardedChests?.[chestId]?.questionId;
+  const previousIndex = /^network-(\d+)$/.exec(previousQuestion || '');
+  if (previousIndex && Number(previousIndex[1]) < questions.length) questionIndex = Number(previousIndex[1]);
   reward = openChest;
+  rewardChestId = chestId;
   previousFocus = document.activeElement;
   game.stopDungeon();
   game.setNetworkModalActive(true);
@@ -80,9 +182,12 @@ el('networkConfirm').addEventListener('click', () => {
     if (!solved) { renderAnswers(); el('networkAnswers').firstElementChild.focus(); return; }
     const openChest = reward;
     const knowledge = game.networkKnowledge;
-    knowledge.completed = (Number.isInteger(knowledge.completed) && knowledge.completed >= 0 ? knowledge.completed : 0) + 1;
-    // Opening the chest persists both the treasure and learning progress together.
-    openChest();
+    // Consome o callback antes de abrir o baú, inclusive em cliques repetidos.
+    reward = null;
+    if (openChest() !== false) {
+      knowledge.completed = (Number.isInteger(knowledge.completed) && knowledge.completed >= 0 ? knowledge.completed : 0) + 1;
+      game.onWorldChanged && game.onWorldChanged();
+    }
     closeChallenge();
     return;
   }
@@ -90,6 +195,8 @@ el('networkConfirm').addEventListener('click', () => {
   answered = true;
   const q = questions[questionIndex];
   solved = selected === q.correct;
+  const granted = solved && game.rewardCorrectAnswer(rewardChestId, 'network-'+questionIndex);
+  showAnswerEffect(solved, granted);
   [...el('networkAnswers').children].forEach((button, i) => {
     button.disabled = true;
     button.classList.toggle('correct', i === q.correct);
