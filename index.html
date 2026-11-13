@@ -7,6 +7,7 @@
   <meta name="description" content="Dungeon RPG — uma aventura começa nas profundezas.">
   <title>Dungeon RPG</title>
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <main class="game-shell" id="gameShell">
@@ -71,6 +72,17 @@
 
     <section class="screen dungeon-overlay" id="dungeonScreen" aria-label="Área jogável da masmorra" hidden>
       <div class="dungeon-hud"><div class="hud-left"><div class="area-badge"><span class="status-light"></span><span id="areaName">Catacumbas Antigas</span></div><div class="player-bars"><div class="resource-row"><span>HP</span><div class="resource-track"><i id="healthBar"></i></div><b id="healthText">100 / 100</b></div><div class="resource-row mana-row"><span>MP</span><div class="resource-track"><i id="manaBar"></i></div><b id="manaText">20 / 20</b></div><div class="xp-row"><span id="levelText">NÍVEL 1</span><div class="resource-track xp-track"><i id="xpBar"></i></div><b id="xpText">0 XP</b></div><div class="loot-row" id="inventoryText">MOCHILA · 0 ITENS</div></div><div class="ability-slots"><span><b>1</b><i id="abilityName1">Habilidade</i><small id="abilityCooldown1"></small></span><span><b>2</b><i id="abilityName2">Habilidade</i><small id="abilityCooldown2"></small></span><span><b>3</b><i id="abilityName3">Habilidade</i><small id="abilityCooldown3"></small></span><span><b>4</b><i id="abilityName4">Habilidade</i><small id="abilityCooldown4"></small></span></div></div><canvas id="minimapCanvas" width="144" height="96" aria-label="Minimapa das áreas exploradas"></canvas><div class="hud-actions"><button class="dungeon-exit" type="button" data-action="inventory">Inventário</button><button class="dungeon-exit" type="button" data-action="progression">Personagem</button><button class="dungeon-exit" type="button" data-action="leave-dungeon">Pausar <span>Ⅱ</span></button></div></div>
+      <section class="rpg-modal" id="networkModal" role="dialog" aria-modal="true" aria-labelledby="networkTitle" hidden>
+        <div class="rpg-panel network-panel">
+          <header class="rpg-panel-head"><div><p class="screen-eyebrow">O selo do conhecimento · Redes de Computadores</p><h2 id="networkTitle" tabindex="-1">Desafio do baú</h2></div></header>
+          <p id="networkProgress" class="network-progress"></p>
+          <p class="network-intro">Decifre o selo para conquistar o tesouro. A masmorra está pausada.</p>
+          <h3 id="networkQuestion"></h3>
+          <div id="networkAnswers" class="network-answers" role="group" aria-labelledby="networkQuestion"></div>
+          <p id="networkFeedback" class="network-feedback" role="status" hidden></p>
+          <div class="item-actions"><button id="networkConfirm" class="ornate-button" type="button" disabled>Confirmar resposta</button><button id="networkLeave" class="text-button" type="button">Voltar à masmorra</button></div>
+        </div>
+      </section>
       <section class="rpg-modal" id="inventoryModal" aria-labelledby="inventoryTitle" hidden>
         <div class="rpg-panel"><header class="rpg-panel-head"><div><p class="screen-eyebrow">Equipamento e espólios</p><h2 id="inventoryTitle">Inventário</h2></div><button class="modal-close" data-action="close-rpg-modal" aria-label="Fechar">×</button></header>
           <div class="equipment-slots" id="equipmentList"></div><h3 class="section-title">Mochila</h3><div class="inventory-list" id="inventoryList"></div><div class="selected-item" id="selectedItemDetail">Escolha um item para ver as opções.</div><div class="item-actions"><button class="ornate-button" id="useItemButton" type="button" data-item-action="use" disabled>Usar</button><button class="ornate-button" id="equipItemButton" type="button" data-item-action="equip" disabled>Equipar</button><button class="text-button" data-action="close-rpg-modal">Voltar ao jogo</button></div>
@@ -81,7 +93,7 @@
           <div class="progression-summary"><strong id="progressionLevel">Nível 1</strong><span id="attributePoints">Pontos de atributo: 0</span><span id="skillPoints">Pontos de habilidade: 0</span></div><div class="attribute-list" id="attributeList"></div><h3 class="section-title">Árvore de habilidades</h3><div class="skill-tree" id="skillTree"></div><div class="item-actions"><button class="text-button" data-action="close-rpg-modal">Voltar ao jogo</button></div>
         </div>
       </section>
-      <div class="movement-hint">WASD / SETAS <span>·</span> MOVER <span>·</span> CLIQUE / <b id="attackKeyHint">F</b> ATACAR <span>·</span> 1–4 HABILIDADES <span>·</span> ESPAÇO ESQUIVAR</div>
+      <div class="movement-hint">E INTERAGIR / BAÚ <span>·</span> WASD / SETAS <span>·</span> MOVER <span>·</span> CLIQUE / <b id="attackKeyHint">F</b> ATACAR <span>·</span> 1–4 HABILIDADES <span>·</span> ESPAÇO ESQUIVAR</div>
     </section>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -89,5 +101,6 @@
   </main>
   <script src="js/game.js"></script>
   <script src="js/main.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>

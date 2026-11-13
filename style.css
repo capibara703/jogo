@@ -1,0 +1,16 @@
+﻿/* Desafios de redes integrados ao visual original do RPG. */
+.network-panel{width:min(660px,calc(100% - 14px))}
+.network-progress{font:11px Georgia,serif;color:#d5b477;letter-spacing:.04em}
+.network-intro{font-size:14px;color:#bcae9c;line-height:1.6}
+#networkQuestion{font:600 19px Georgia,serif;color:#f0d8a8;line-height:1.5;margin:20px 0 16px}
+.network-answers{display:grid;gap:9px}
+.network-answer{text-align:left;line-height:1.5;padding:13px 15px;border:1px solid #665139;background:#19151e;color:#dfd1bc;font:15px Georgia,serif;cursor:pointer;transition:background .15s,border-color .15s}
+.network-answer:hover:not(:disabled){border-color:#d3a65d;background:#32261f}
+.network-answer.selected{border-color:#e6bb71;background:#3b2b20;color:#ffe5b6}
+.network-answer.correct{border-color:#7caa78;background:#253b29;color:#d9f3cc}
+.network-answer.wrong{border-color:#c47768;background:#41252a;color:#ffd4c8}
+.network-answer:disabled{cursor:default;opacity:1}
+.network-feedback{padding:13px 15px;background:#29231e;border-left:3px solid #d3a65d;color:#e8d6b4;font-size:15px;line-height:1.7}
+#networkConfirm:disabled{opacity:.45;cursor:not-allowed}
+#networkModal[hidden]{display:none!important}
+@media(max-width:600px){.network-answer{font-size:14px;padding:11px}.network-panel .item-actions{gap:8px}#networkQuestion{font-size:17px}.network-panel .rpg-panel-head h2{font-size:21px}}
